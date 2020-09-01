@@ -11,6 +11,8 @@ var minutes = 0; // minutes for each interval eg. 25 or 5
 var timePassed = 0; // how much time has passed in pomo so far
 var time; // date object to parse for time
 var working = false; // which interval we are on eg. working or break
+var minuteCounter;
+var minuteMessage;
 
 function setPomo(msg) {
   working = !working;
@@ -19,14 +21,16 @@ function setPomo(msg) {
     // sets value for break time eg. 5 minutes
     minutes = 5;
     message = "ding! work time!";
-    client.user
-      .setPresence({ activity: { name: "break time!" } })
+    minuteMessage = "breaking: ";
+    client.user.setPresence({ activity: { name: minuteMessage + 
+          "5 min" } });
   } else {
     // sets value for initial time eg. 25 minutes
     minutes = 25;
     message = "ding! break time!";
-    client.user
-      .setPresence({ activity: { name: "work time!" } })
+    minuteMessage = "working: "
+    client.user.setPresence({ activity: { name: minuteMessage +
+      "25 min" } });
   }
 
   countingTime(minutes);
@@ -46,8 +50,9 @@ function reset() {
   working = false;
   clearTimeout(timer);
   clearInterval(timing);
-  client.user
-    .setPresence({ activity: { name: "anti-pomo time" } })
+  clearInterval(minuteCounter);
+  timer = null, timing= null, minuteCounter = null;
+  client.user.setPresence({ activity: { name: "anti-pomo time" } });
 }
 
 function countingTime(min) {
@@ -56,6 +61,18 @@ function countingTime(min) {
     timeRemaining = min * 60 - timePassed;
     time = new Date(timeRemaining * 1000).toISOString().substr(14, 5);
   }, 1000);
+
+  minuteCounter = setInterval(()=>{
+    client.user.setPresence({
+      activity: {
+        name:
+          minuteMessage + 
+          time.substr(0, 2) +
+          " min"
+      },
+    });
+    console.log(time.substr(0, 2) + " min ")
+  }, 60000)
 }
 
 client.on("message", (msg) => {
@@ -71,13 +88,14 @@ client.on("message", (msg) => {
   // starting pomo
   if (command === "!start") {
     msg.channel.send("starting work day!");
-    client.user
-      .setPresence({ activity: { name: "work time!" } })
+    client.user.setPresence({ activity: { name: "work time!" } });
     intervalCount = 0;
     setPomo(msg);
   } else if (command === "!stop") {
-    reset();
-    msg.channel.send("stopping work time!");
+    if(timing != null){
+      reset();
+      msg.channel.send("stopping work time!");
+    } else msg.channel.send("no active timers!");
   } else if (command === "!time") {
     msg.channel.send(
       "Time remaining " +
@@ -91,8 +109,14 @@ client.on("message", (msg) => {
     msg.channel.send("lunch time!");
     let lunchMinutes = 30;
     countingTime(lunchMinutes);
-    client.user
-      .setPresence({ activity: { name: "lunch time!" } })
+    minuteMessage = "lunch: "
+    client.user.setPresence({
+      activity: {
+        name:
+          minuteMessage + 
+          "30 min"
+      },
+    });
     setTimeout(function () {
       reset();
       msg.channel.send("work time!");

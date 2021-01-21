@@ -1,0 +1,10 @@
+version: '3'
+
+services:
+  discgram:
+    container_name: tanat-timer
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+
